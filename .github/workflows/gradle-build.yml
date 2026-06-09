@@ -1,4 +1,4 @@
-name: Gradle Build
+name: Gradle build
 
 on:
   push:
@@ -15,15 +15,21 @@ on:
       - 'LICENSE'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -32,44 +38,59 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
-
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          add-job-summary: 'on-failure'
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
-
-      - name: Run tests
-        run: ./gradlew test --no-daemon
-
-      - name: Extract version
+      - name: Extract version information
         id: extract_version
         run: |
-          VERSION=$(grep 'version =' build.gradle | head -n 1 | awk -F "'" '{print $2}')
+          VERSION=$(grep 'version = "' build.gradle.kts | head -n 1 | awk -F'"' '{print $2}')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           COMMIT_SHA_SHORT=$(git rev-parse --short HEAD)
           echo "COMMIT_SHA_SHORT=$COMMIT_SHA_SHORT" >> $GITHUB_ENV
+          echo "commit_sha_short=$COMMIT_SHA_SHORT" >> $GITHUB_OUTPUT
           echo "Version: $VERSION (Commit: $COMMIT_SHA_SHORT)"
 
-      - name: Upload JAR artifact
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Generate Javadoc
+        run: ./gradlew javadoc --no-daemon
+
+      - name: Upload CelestCombat JAR
         uses: actions/upload-artifact@v4
         with:
-          name: CelestCombat-${{ env.VERSION }}
-          path: build/libs/CelestCombat-${{ env.VERSION }}.jar
+          name: CelestCombat-${{ steps.extract_version.outputs.version }}
+          path: build/libs/CelestCombat-${{ steps.extract_version.outputs.version }}.jar
           retention-days: 90
           if-no-files-found: error
 
-      - name: Upload test reports on failure
-        if: failure()
+      - name: Upload Javadoc
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ env.COMMIT_SHA_SHORT }}
-          path: build/reports/tests/
+          name: CelestCombat-Javadoc-${{ steps.extract_version.outputs.version }}
+          path: build/docs/javadoc/**
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ steps.extract_version.outputs.commit_sha_short }}
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
           retention-days: 7
+          if-no-files-found: ignore
