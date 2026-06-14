@@ -96,6 +96,48 @@ newbie_protection_removed_attack:
 newbie_protection_actionbar:
   action_bar: "&#4CAF50PvP Protection: &#FFFFFF%time%"
 
+login_protection_started:
+  message: "&#4CAF50Login protection enabled briefly. Move protection ends soon."
+  sound: entity.experience_orb.pickup
+
+login_protection_ended:
+  message: "&#4CAF50Login protection ended."
+
+pvp_not_enabled:
+  message: "&cPvP is not enabled for you or that player. Use /pvp to enable your PvP permanently."
+  sound: entity.villager.no
+
+pvp_enabled_self:
+  message: "&#4CAF50PvP enabled permanently. Your login/newbie protections were removed."
+  sound: entity.player.levelup
+
+pvp_status:
+  message: "&#4A90E2%player% &#F5F5DCPvP: &#FFFFFF%pvp% &#8B8B8B| Newbie: &#FFFFFF%newbie% &#8B8B8B| Login: &#FFFFFF%login%"
+
+pvp_help:
+  message: |
+    &8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    &#4A90E2/pvp &#F5F5DC- Permanently enable PvP and remove protections
+    &#4A90E2/pvp status &#F5F5DC- Check your PvP/protection status
+    &#4A90E2/pvp help &#F5F5DC- Show this help
+    &7Admin: /pvp on|off|status|reset|protect|unprotect|reload
+    &8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+pvp_admin_on:
+  message: "&#4CAF50Enabled PvP for %player%."
+
+pvp_admin_off:
+  message: "&#4CAF50Disabled PvP for %player%."
+
+pvp_admin_reset:
+  message: "&#4CAF50Reset PvP/protection profile for %player%."
+
+pvp_admin_protect:
+  message: "&#4CAF50Granted %type% protection to %player%."
+
+pvp_admin_unprotect:
+  message: "&#4CAF50Removed %type% protection from %player%."
+
 # ------------------------------------------------------
 # Safe zone messages for third-party protection plugins
 # ------------------------------------------------------

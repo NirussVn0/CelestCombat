@@ -2,6 +2,7 @@ package dev.nighter.celestCombat.protection;
 
 import dev.nighter.celestCombat.CelestCombat;
 import dev.nighter.celestCombat.Scheduler;
+import dev.nighter.celestCombat.player.PlayerProfile;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
@@ -40,6 +41,10 @@ public class NewbieProtectionManager {
     private boolean protectFromPvP;
     private boolean protectFromMobs;
     private boolean removeOnDamageDealt;
+    private boolean breakOnPlayerAttack;
+    private boolean breakOnPvpCommand;
+    private boolean blockDealingPvpDamage;
+    private boolean blockReceivingPvpDamage;
 
     // Tasks
     private Scheduler.Task updateTask;
@@ -73,16 +78,16 @@ public class NewbieProtectionManager {
     public void loadConfig() {
         FileConfiguration config = plugin.getConfig();
 
-        this.enabled = config.getBoolean("newbie_protection.enabled", true);
-        this.protectionDurationTicks = plugin.getTimeFromConfig("newbie_protection.duration", "10m");
+        this.enabled = getBoolean(config, "newbie_protection.enabled", "newbie-protection.enabled", true);
+        this.protectionDurationTicks = getTime("newbie_protection.duration", "newbie-protection.duration", "3h");
         this.protectionDurationSeconds = protectionDurationTicks / 20;
 
-        this.useBossBar = config.getBoolean("newbie_protection.display.use_bossbar", true);
-        this.useActionBar = config.getBoolean("newbie_protection.display.use_actionbar", false);
-        this.bossBarTitle = config.getString("newbie_protection.display.bossbar.title", "&#4CAF50PvP Protection: &#FFFFFF%time%");
+        this.useBossBar = getBoolean(config, "newbie_protection.display.use_bossbar", "newbie-protection.display.use-bossbar", true);
+        this.useActionBar = getBoolean(config, "newbie_protection.display.use_actionbar", "newbie-protection.display.use-actionbar", false);
+        this.bossBarTitle = getString(config, "newbie_protection.display.bossbar.title", "newbie-protection.display.bossbar.title", "&#4CAF50PvP Protection: &#FFFFFF%time%");
 
         // Parse boss bar color
-        String colorStr = config.getString("newbie_protection.display.bossbar.color", "GREEN");
+        String colorStr = getString(config, "newbie_protection.display.bossbar.color", "newbie-protection.display.bossbar.color", "GREEN");
         try {
             this.bossBarColor = BarColor.valueOf(colorStr.toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -91,7 +96,7 @@ public class NewbieProtectionManager {
         }
 
         // Parse boss bar style
-        String styleStr = config.getString("newbie_protection.display.bossbar.style", "SOLID");
+        String styleStr = getString(config, "newbie_protection.display.bossbar.style", "newbie-protection.display.bossbar.style", "SOLID");
         try {
             this.bossBarStyle = BarStyle.valueOf(styleStr.toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -99,9 +104,21 @@ public class NewbieProtectionManager {
             plugin.getLogger().warning("Invalid boss bar style: " + styleStr + ", using SOLID");
         }
 
-        this.protectFromPvP = config.getBoolean("newbie_protection.protect_from_pvp", true);
+        this.protectFromPvP = getBoolean(config,
+                "newbie_protection.protect_from_pvp",
+                "newbie-protection.damage.block-receiving-pvp-damage",
+                true);
         this.protectFromMobs = config.getBoolean("newbie_protection.protect_from_mobs", false);
-        this.removeOnDamageDealt = config.getBoolean("newbie_protection.remove_on_damage_dealt", true);
+        this.removeOnDamageDealt = config.getBoolean("newbie_protection.remove_on_damage_dealt",
+                getBoolean(config, "newbie_protection.break.on_player_attack", "newbie-protection.break.on-player-attack", true));
+
+        this.breakOnPlayerAttack = removeOnDamageDealt
+                && getBoolean(config, "newbie_protection.break.on_player_attack", "newbie-protection.break.on-player-attack", true);
+        this.breakOnPvpCommand = getBoolean(config, "newbie_protection.break.on_pvp_command", "newbie-protection.break.on-pvp-command", true);
+        this.blockDealingPvpDamage = protectFromPvP
+                && getBoolean(config, "newbie_protection.damage.block_dealing_pvp_damage", "newbie-protection.damage.block-dealing-pvp-damage", true);
+        this.blockReceivingPvpDamage = protectFromPvP
+                && getBoolean(config, "newbie_protection.damage.block_receiving_pvp_damage", "newbie-protection.damage.block-receiving-pvp-damage", true);
 
         loadWorldProtectionSettings();
 
@@ -111,15 +128,33 @@ public class NewbieProtectionManager {
                 ", Action bar: " + useActionBar);
     }
 
+    private boolean getBoolean(FileConfiguration config, String primaryPath, String legacyPath, boolean defaultValue) {
+        return config.contains(primaryPath) ? config.getBoolean(primaryPath, defaultValue) : config.getBoolean(legacyPath, defaultValue);
+    }
+
+    private String getString(FileConfiguration config, String primaryPath, String legacyPath, String defaultValue) {
+        return config.contains(primaryPath) ? config.getString(primaryPath, defaultValue) : config.getString(legacyPath, defaultValue);
+    }
+
+    private long getTime(String primaryPath, String legacyPath, String defaultValue) {
+        return plugin.getConfig().contains(primaryPath)
+                ? plugin.getTimeFromConfig(primaryPath, defaultValue)
+                : plugin.getTimeFromConfig(legacyPath, defaultValue);
+    }
+
     /**
      * Loads per-world protection settings
      */
     private void loadWorldProtectionSettings() {
         worldProtectionSettings.clear();
 
-        if (plugin.getConfig().isConfigurationSection("newbie_protection.worlds")) {
-            for (String worldName : Objects.requireNonNull(plugin.getConfig().getConfigurationSection("newbie_protection.worlds")).getKeys(false)) {
-                boolean enabledInWorld = plugin.getConfig().getBoolean("newbie_protection.worlds." + worldName, true);
+        String worldsPath = plugin.getConfig().isConfigurationSection("newbie_protection.worlds")
+                ? "newbie_protection.worlds"
+                : "newbie-protection.worlds";
+
+        if (plugin.getConfig().isConfigurationSection(worldsPath)) {
+            for (String worldName : Objects.requireNonNull(plugin.getConfig().getConfigurationSection(worldsPath)).getKeys(false)) {
+                boolean enabledInWorld = plugin.getConfig().getBoolean(worldsPath + "." + worldName, true);
                 worldProtectionSettings.put(worldName, enabledInWorld);
             }
         }
@@ -230,6 +265,10 @@ public class NewbieProtectionManager {
      * Grants newbie protection to a player
      */
     public void grantProtection(Player player) {
+        grantProtection(player, protectionDurationSeconds * 1000L);
+    }
+
+    public void grantProtection(Player player, long durationMillis) {
         if (!enabled || player == null) {
             return;
         }
@@ -241,9 +280,12 @@ public class NewbieProtectionManager {
         }
 
         UUID playerUUID = player.getUniqueId();
-        long expirationTime = System.currentTimeMillis() + (protectionDurationSeconds * 1000L);
+        long expirationTime = System.currentTimeMillis() + durationMillis;
 
         protectedPlayers.put(playerUUID, expirationTime);
+        PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(player);
+        profile.setNewbieProtectionExpiresAt(expirationTime);
+        profile.setNewbieProtectionRevoked(false);
 
         // Create boss bar if enabled
         if (useBossBar) {
@@ -253,7 +295,7 @@ public class NewbieProtectionManager {
         // Send protection granted message
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("player", player.getName());
-        placeholders.put("duration", formatTime(protectionDurationSeconds));
+        placeholders.put("duration", formatTime(durationMillis / 1000L));
         plugin.getMessageService().sendMessage(player, "newbie_protection_granted", placeholders);
 
         plugin.debug("Granted newbie protection to " + player.getName() + " until " + new Date(expirationTime));
@@ -274,6 +316,13 @@ public class NewbieProtectionManager {
 
         UUID playerUUID = player.getUniqueId();
         Long expirationTime = protectedPlayers.get(playerUUID);
+        if (expirationTime == null) {
+            PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(player);
+            if (!profile.isNewbieProtectionRevoked() && profile.getNewbieProtectionExpiresAt() > System.currentTimeMillis()) {
+                expirationTime = profile.getNewbieProtectionExpiresAt();
+                protectedPlayers.put(playerUUID, expirationTime);
+            }
+        }
 
         if (expirationTime == null) {
             return false;
@@ -292,10 +341,23 @@ public class NewbieProtectionManager {
      * Removes newbie protection from a player
      */
     public void removeProtection(Player player, boolean sendMessage) {
+        removeProtection(player, sendMessage, false);
+    }
+
+    public void revokeProtection(Player player, boolean sendMessage) {
+        removeProtection(player, sendMessage, true);
+    }
+
+    private void removeProtection(Player player, boolean sendMessage, boolean revoked) {
         if (player == null) return;
 
         UUID playerUUID = player.getUniqueId();
         boolean hadProtection = protectedPlayers.remove(playerUUID) != null;
+        PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(player);
+        profile.setNewbieProtectionExpiresAt(0L);
+        if (revoked) {
+            profile.setNewbieProtectionRevoked(true);
+        }
 
         if (hadProtection) {
             // Remove boss bar
@@ -330,14 +392,21 @@ public class NewbieProtectionManager {
     /**
      * Handles when a protected player deals damage
      */
-    public void handleDamageDealt(Player player) {
-        if (removeOnDamageDealt && hasProtection(player)) {
+    public boolean handleDamageDealt(Player player) {
+        if (!hasProtection(player)) {
+            return false;
+        }
+
+        if (breakOnPlayerAttack) {
             Map<String, String> placeholders = new HashMap<>();
             placeholders.put("player", player.getName());
             plugin.getMessageService().sendMessage(player, "newbie_protection_removed_attack", placeholders);
 
-            removeProtection(player, false);
+            revokeProtection(player, false);
+            return false;
         }
+
+        return blockDealingPvpDamage;
     }
 
     /**
@@ -549,7 +618,20 @@ public class NewbieProtectionManager {
     public void handlePlayerJoin(Player player) {
         if (!enabled || player == null) return;
 
-        // Check if player has played before
+        PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(player);
+        if (profile.isNewbieProtectionRevoked()) {
+            plugin.debug("Player " + player.getName() + " has revoked newbie protection, not granting again");
+            return;
+        }
+
+        if (profile.getNewbieProtectionExpiresAt() > System.currentTimeMillis()) {
+            protectedPlayers.put(player.getUniqueId(), profile.getNewbieProtectionExpiresAt());
+            if (useBossBar) {
+                createBossBar(player);
+            }
+            return;
+        }
+
         if (player.hasPlayedBefore()) {
             plugin.debug("Player " + player.getName() + " has played before, not granting newbie protection");
             return;
@@ -576,11 +658,23 @@ public class NewbieProtectionManager {
      * Gets protection settings
      */
     public boolean shouldProtectFromPvP() {
-        return protectFromPvP;
+        return blockReceivingPvpDamage;
     }
 
     public boolean shouldProtectFromMobs() {
         return protectFromMobs;
+    }
+
+    public boolean shouldBlockDealingPvpDamage() {
+        return blockDealingPvpDamage;
+    }
+
+    public boolean shouldBlockReceivingPvpDamage() {
+        return blockReceivingPvpDamage;
+    }
+
+    public boolean shouldBreakOnPvpCommand() {
+        return breakOnPvpCommand;
     }
 
     /**

@@ -4,6 +4,8 @@ import dev.nighter.celestCombat.CelestCombat;
 import dev.nighter.celestCombat.combat.CombatManager;
 import dev.nighter.celestCombat.combat.DeathAnimationManager;
 import dev.nighter.celestCombat.language.MessageService;
+import dev.nighter.celestCombat.player.PlayerProfile;
+import dev.nighter.celestCombat.protection.LoginProtectionManager;
 import dev.nighter.celestCombat.protection.NewbieProtectionManager;
 import dev.nighter.celestCombat.rewards.KillRewardManager;
 import org.bukkit.entity.Entity;
@@ -13,12 +15,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPotionEffectEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
+import org.bukkit.event.player.PlayerVelocityEvent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +38,7 @@ public class CombatListeners implements Listener {
     private final CelestCombat plugin;
     private CombatManager combatManager;
     private NewbieProtectionManager newbieProtectionManager;
+    private LoginProtectionManager loginProtectionManager;
     private KillRewardManager killRewardManager;
     private DeathAnimationManager deathAnimationManager;
     private MessageService messageService;
@@ -47,6 +55,7 @@ public class CombatListeners implements Listener {
         this.plugin = plugin;
         this.combatManager = plugin.getCombatManager();
         this.newbieProtectionManager = plugin.getNewbieProtectionManager();
+        this.loginProtectionManager = plugin.getLoginProtectionManager();
         this.killRewardManager = plugin.getKillRewardManager();
         this.deathAnimationManager = plugin.getDeathAnimationManager();
         this.messageService = plugin.getMessageService();
@@ -58,6 +67,7 @@ public class CombatListeners implements Listener {
     public void reload() {
         this.combatManager = plugin.getCombatManager();
         this.newbieProtectionManager = plugin.getNewbieProtectionManager();
+        this.loginProtectionManager = plugin.getLoginProtectionManager();
         this.killRewardManager = plugin.getKillRewardManager();
         this.deathAnimationManager = plugin.getDeathAnimationManager();
         this.messageService = plugin.getMessageService();
@@ -88,7 +98,30 @@ public class CombatListeners implements Listener {
             }
         }
 
-        // Handle newbie protection checks
+        if (attacker != null && loginProtectionManager.hasProtection(attacker)) {
+            event.setCancelled(true);
+            if (loginProtectionManager.shouldEndOnPlayerAttack()) {
+                loginProtectionManager.removeProtection(attacker, true);
+            }
+            plugin.debug("Blocked PvP damage from login-protected attacker: " + attacker.getName());
+            return;
+        }
+
+        if (loginProtectionManager.shouldBlockAllDamage(victim)) {
+            event.setCancelled(true);
+            plugin.debug("Blocked PvP damage to login-protected victim: " + victim.getName());
+            return;
+        }
+
+        if (attacker != null && newbieProtectionManager.hasProtection(attacker)) {
+            boolean shouldBlock = newbieProtectionManager.handleDamageDealt(attacker);
+            if (shouldBlock) {
+                event.setCancelled(true);
+                plugin.debug("Blocked PvP damage from protected newbie: " + attacker.getName());
+                return;
+            }
+        }
+
         // Check if victim has newbie protection from PvP
         if (attacker != null && newbieProtectionManager.shouldProtectFromPvP() &&
                 newbieProtectionManager.hasProtection(victim)) {
@@ -110,9 +143,15 @@ public class CombatListeners implements Listener {
             return;
         }
 
-        // Handle when protected player deals damage (removes protection if configured)
-        if (attacker != null && newbieProtectionManager.hasProtection(attacker)) {
-            newbieProtectionManager.handleDamageDealt(attacker);
+        if (attacker != null) {
+            PlayerProfile attackerProfile = plugin.getPlayerProfileManager().getOrCreate(attacker);
+            PlayerProfile victimProfile = plugin.getPlayerProfileManager().getOrCreate(victim);
+            if (!attackerProfile.isPvpEnabled() || !victimProfile.isPvpEnabled()) {
+                event.setCancelled(true);
+                messageService.sendMessage(attacker, "pvp_not_enabled");
+                plugin.debug("Blocked PvP because PvP is not enabled for attacker or victim");
+                return;
+            }
         }
 
         // Continue with normal combat logic if damage wasn't blocked
@@ -130,6 +169,37 @@ public class CombatListeners implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event instanceof EntityDamageByEntityEvent) {
+            return;
+        }
+
+        if (event.getEntity() instanceof Player player && loginProtectionManager.shouldBlockAllDamage(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerVelocity(PlayerVelocityEvent event) {
+        if (loginProtectionManager.shouldBlockKnockback(event.getPlayer())) {
+            event.setCancelled(true);
+            event.getPlayer().setVelocity(event.getPlayer().getVelocity().zero());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPotionEffect(EntityPotionEffectEvent event) {
+        if (event.getEntity() instanceof Player player && loginProtectionManager.shouldBlockPotionEffects(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerMove(PlayerMoveEvent event) {
+        loginProtectionManager.handleMove(event);
+    }
+
     private void cleanupStaleDamageRecords() {
         long currentTime = System.currentTimeMillis();
         lastDamageTime.entrySet().removeIf(entry ->
@@ -145,9 +215,15 @@ public class CombatListeners implements Listener {
 
         // Handle newbie protection cleanup
         newbieProtectionManager.handlePlayerQuit(player);
+        loginProtectionManager.handlePlayerQuit(player);
 
         if (combatManager.isInCombat(player)) {
             playerLoggedOutInCombat.put(player.getUniqueId(), true);
+
+            plugin.getPlayerProfileManager().markLoginProtectionBlocked(
+                    player.getUniqueId(),
+                    System.currentTimeMillis() + plugin.getLoginProtectionManager().getAntiAbuseCooldownMillis()
+            );
 
             // Punish the player for combat logging
             combatManager.punishCombatLogout(player);
@@ -164,6 +240,7 @@ public class CombatListeners implements Listener {
 
         // Handle newbie protection cleanup
         newbieProtectionManager.handlePlayerQuit(player);
+        loginProtectionManager.handlePlayerQuit(player);
 
         if (combatManager.isInCombat(player)) {
             // Check if exempt_admin_kick is enabled and this was an admin kick
@@ -180,6 +257,10 @@ public class CombatListeners implements Listener {
                 // Regular kick, treat as combat logout
                 Player opponent = combatManager.getCombatOpponent(player);
                 playerLoggedOutInCombat.put(player.getUniqueId(), true);
+                plugin.getPlayerProfileManager().markLoginProtectionBlocked(
+                        player.getUniqueId(),
+                        System.currentTimeMillis() + plugin.getLoginProtectionManager().getAntiAbuseCooldownMillis()
+                );
 
                 // Punish for combat logging
                 combatManager.punishCombatLogout(player);
@@ -274,7 +355,9 @@ public class CombatListeners implements Listener {
         UUID playerUUID = player.getUniqueId();
 
         // Handle newbie protection for new players
+        plugin.getPlayerProfileManager().getOrCreate(player);
         newbieProtectionManager.handlePlayerJoin(player);
+        loginProtectionManager.handlePlayerJoin(player);
 
         if (playerLoggedOutInCombat.containsKey(playerUUID)) {
             if (playerLoggedOutInCombat.get(playerUUID)) {
@@ -289,6 +372,22 @@ public class CombatListeners implements Listener {
         // Clean up any stale damage records for this player
         lastDamageSource.remove(playerUUID);
         lastDamageTime.remove(playerUUID);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onResourcePackStatus(PlayerResourcePackStatusEvent event) {
+        if (!loginProtectionManager.shouldEndOnResourcePackLoaded()) {
+            return;
+        }
+
+        PlayerResourcePackStatusEvent.Status status = event.getStatus();
+        if (status == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
+                || status == PlayerResourcePackStatusEvent.Status.DECLINED
+                || status == PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD
+                || status == PlayerResourcePackStatusEvent.Status.INVALID_URL
+                || status == PlayerResourcePackStatusEvent.Status.FAILED_RELOAD) {
+            loginProtectionManager.removeProtection(event.getPlayer(), true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

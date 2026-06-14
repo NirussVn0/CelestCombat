@@ -5,6 +5,7 @@ import dev.nighter.celestCombat.bstats.Metrics;
 import dev.nighter.celestCombat.combat.CombatManager;
 import dev.nighter.celestCombat.combat.DeathAnimationManager;
 import dev.nighter.celestCombat.commands.CommandManager;
+import dev.nighter.celestCombat.commands.PvpCommand;
 import dev.nighter.celestCombat.configs.TimeFormatter;
 import dev.nighter.celestCombat.language.LanguageManager;
 import dev.nighter.celestCombat.language.MessageService;
@@ -14,6 +15,8 @@ import dev.nighter.celestCombat.hooks.protection.WorldGuardHook;
 import dev.nighter.celestCombat.hooks.protection.GriefPreventionHook;
 import dev.nighter.celestCombat.listeners.ItemRestrictionListener;
 import dev.nighter.celestCombat.listeners.TridentListener;
+import dev.nighter.celestCombat.player.PlayerProfileManager;
+import dev.nighter.celestCombat.protection.LoginProtectionManager;
 import dev.nighter.celestCombat.protection.NewbieProtectionManager;
 import dev.nighter.celestCombat.rewards.KillRewardManager;
 import dev.nighter.celestCombat.updates.ConfigUpdater;
@@ -44,7 +47,9 @@ public final class CelestCombat extends JavaPlugin {
     private EnderPearlListener enderPearlListener;
     private TridentListener tridentListener;
     private DeathAnimationManager deathAnimationManager;
+    private PlayerProfileManager playerProfileManager;
     private NewbieProtectionManager newbieProtectionManager;
+    private LoginProtectionManager loginProtectionManager;
     private WorldGuardHook worldGuardHook;
     private GriefPreventionHook griefPreventionHook;
 
@@ -72,7 +77,9 @@ public final class CelestCombat extends JavaPlugin {
         deathAnimationManager = new DeathAnimationManager(this);
         combatManager = new CombatManager(this);
         killRewardManager = new KillRewardManager(this);
+        playerProfileManager = new PlayerProfileManager(this);
         newbieProtectionManager = new NewbieProtectionManager(this);
+        loginProtectionManager = new LoginProtectionManager(this);
         combatListeners = new CombatListeners(this);
         getServer().getPluginManager().registerEvents(combatListeners, this);
 
@@ -104,6 +111,11 @@ public final class CelestCombat extends JavaPlugin {
 
         commandManager = new CommandManager(this);
         commandManager.registerCommands();
+        PvpCommand pvpCommand = new PvpCommand(this);
+        if (getCommand("pvp") != null) {
+            getCommand("pvp").setExecutor(pvpCommand);
+            getCommand("pvp").setTabCompleter(pvpCommand);
+        }
 
         setupBtatsMetrics();
 
@@ -143,6 +155,14 @@ public final class CelestCombat extends JavaPlugin {
 
         if (newbieProtectionManager != null) {
             newbieProtectionManager.shutdown();
+        }
+
+        if (loginProtectionManager != null) {
+            loginProtectionManager.shutdown();
+        }
+
+        if (playerProfileManager != null) {
+            playerProfileManager.shutdown();
         }
 
         getLogger().info("CelestCombat has been disabled!");

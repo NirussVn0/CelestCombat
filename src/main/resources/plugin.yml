@@ -16,6 +16,9 @@ commands:
     description: Main command for CelestCombat
     usage: /celestcombat
     aliases: [cc, combat]
+  pvp:
+    description: Enable PvP or manage player PvP protection
+    usage: /pvp
 
 permissions:
   celestcombat.command.use:
@@ -27,3 +30,9 @@ permissions:
   celestcombat.bypass.tag:
     description: Allows players to bypass being tagged in combat
     default: false
+  celestcombat.pvp.use:
+    description: Allows players to use /pvp, /pvp status and /pvp help
+    default: true
+  celestcombat.pvp.admin:
+    description: Allows admins to manage PvP state and protections
+    default: op

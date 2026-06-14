@@ -180,21 +180,24 @@ kill_rewards:
 #              NEW PLAYER PROTECTION
 #---------------------------------------------------
 newbie_protection:
-  # Enable/disable the newbie protection system
   enabled: true
-
-  # Duration of protection for new players
-  # Formats: 10s, 5m, 1h, 30m, etc.
-  duration: 10m
+  duration: 3h
 
   # Protection settings
   protect_from_pvp: true      # Protect from player vs player damage
   protect_from_mobs: false    # Protect from mob damage
 
   # Removal conditions
-  remove_on_damage_dealt: true    # Remove protection when player deals damages to another player
+  remove_on_damage_dealt: true    # Remove protection when player deals damage to another player
 
-  # Display settings
+  break:
+    on_player_attack: true
+    on_pvp_command: true
+
+  damage:
+    block_dealing_pvp_damage: true
+    block_receiving_pvp_damage: true
+
   display:
     use_bossbar: true
     use_actionbar: false
@@ -204,12 +207,37 @@ newbie_protection:
       color: "GREEN"      # BLUE, GREEN, PINK, PURPLE, RED, WHITE, YELLOW
       style: "SOLID"      # SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
 
-  # World-specific settings (optional)
-  # If not specified, protection is enabled in all worlds
   worlds:
     world: true           # Enable protection in 'world'
     world_nether: false   # Disable protection in 'world_nether'
     world_the_end: false  # Disable protection in 'world_the_end'
+
+#---------------------------------------------------
+#              LOGIN PROTECTION
+#---------------------------------------------------
+login_protection:
+  enabled: true
+  duration: 10s
+
+  freeze:
+    enabled: true
+    allow_look: true
+    clear_velocity: true
+
+  immunity:
+    all_damage: true
+    knockback: true
+    potion_effects: true
+
+  end:
+    on_time_expired: true
+    on_player_attack: true
+    on_pvp_command: true
+    on_resource_pack_loaded: true
+
+  anti_abuse:
+    disable_when_combat_logged: true
+    cooldown: 30s
 
 #---------------------------------------------------
 #              WORLDGUARD INTEGRATION
