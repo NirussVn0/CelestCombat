@@ -7,6 +7,7 @@ import dev.nighter.celestCombat.language.MessageService;
 import dev.nighter.celestCombat.player.PlayerProfile;
 import dev.nighter.celestCombat.protection.LoginProtectionManager;
 import dev.nighter.celestCombat.protection.NewbieProtectionManager;
+import dev.nighter.celestCombat.protection.RespawnProtectionManager;
 import dev.nighter.celestCombat.rewards.KillRewardManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -29,6 +30,9 @@ import org.bukkit.event.player.PlayerVelocityEvent;
 
 import java.util.HashMap;
 import java.util.List;
+
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +43,7 @@ public class CombatListeners implements Listener {
     private CombatManager combatManager;
     private NewbieProtectionManager newbieProtectionManager;
     private LoginProtectionManager loginProtectionManager;
+    private RespawnProtectionManager respawnProtectionManager;
     private KillRewardManager killRewardManager;
     private DeathAnimationManager deathAnimationManager;
     private MessageService messageService;
@@ -56,6 +61,7 @@ public class CombatListeners implements Listener {
         this.combatManager = plugin.getCombatManager();
         this.newbieProtectionManager = plugin.getNewbieProtectionManager();
         this.loginProtectionManager = plugin.getLoginProtectionManager();
+        this.respawnProtectionManager = plugin.getRespawnProtectionManager();
         this.killRewardManager = plugin.getKillRewardManager();
         this.deathAnimationManager = plugin.getDeathAnimationManager();
         this.messageService = plugin.getMessageService();
@@ -68,6 +74,7 @@ public class CombatListeners implements Listener {
         this.combatManager = plugin.getCombatManager();
         this.newbieProtectionManager = plugin.getNewbieProtectionManager();
         this.loginProtectionManager = plugin.getLoginProtectionManager();
+        this.respawnProtectionManager = plugin.getRespawnProtectionManager();
         this.killRewardManager = plugin.getKillRewardManager();
         this.deathAnimationManager = plugin.getDeathAnimationManager();
         this.messageService = plugin.getMessageService();
@@ -98,48 +105,48 @@ public class CombatListeners implements Listener {
             }
         }
 
-        if (attacker != null && loginProtectionManager.hasProtection(attacker)) {
-            event.setCancelled(true);
-            if (loginProtectionManager.shouldEndOnPlayerAttack()) {
-                loginProtectionManager.removeProtection(attacker, true);
+        // Check if attacker has protection
+        if (attacker != null) {
+            if (loginProtectionManager.hasProtection(attacker)) {
+                boolean shouldBlock = loginProtectionManager.handleDamageDealt(attacker);
+                if (shouldBlock) {
+                    event.setCancelled(true);
+                    plugin.debug("Blocked PvP damage from login-protected attacker: " + attacker.getName());
+                    return;
+                }
             }
-            plugin.debug("Blocked PvP damage from login-protected attacker: " + attacker.getName());
+            if (newbieProtectionManager.hasProtection(attacker)) {
+                boolean shouldBlock = newbieProtectionManager.handleDamageDealt(attacker);
+                if (shouldBlock) {
+                    event.setCancelled(true);
+                    plugin.debug("Blocked PvP damage from protected newbie: " + attacker.getName());
+                    return;
+                }
+            }
+            if (respawnProtectionManager.hasProtection(attacker)) {
+                boolean shouldBlock = respawnProtectionManager.handleDamageDealt(attacker);
+                if (shouldBlock) {
+                    event.setCancelled(true);
+                    plugin.debug("Blocked PvP damage from respawn-protected attacker: " + attacker.getName());
+                    return;
+                }
+            }
+        }
+
+        // Check if victim is protected from damage
+        if (loginProtectionManager.shouldBlockDamage(victim, event)) {
+            event.setCancelled(true);
+            plugin.debug("Blocked damage to login-protected victim: " + victim.getName());
             return;
         }
-
-        if (loginProtectionManager.shouldBlockAllDamage(victim)) {
+        if (newbieProtectionManager.shouldBlockDamage(victim, event)) {
             event.setCancelled(true);
-            plugin.debug("Blocked PvP damage to login-protected victim: " + victim.getName());
+            plugin.debug("Blocked damage to newbie-protected victim: " + victim.getName());
             return;
         }
-
-        if (attacker != null && newbieProtectionManager.hasProtection(attacker)) {
-            boolean shouldBlock = newbieProtectionManager.handleDamageDealt(attacker);
-            if (shouldBlock) {
-                event.setCancelled(true);
-                plugin.debug("Blocked PvP damage from protected newbie: " + attacker.getName());
-                return;
-            }
-        }
-
-        // Check if victim has newbie protection from PvP
-        if (attacker != null && newbieProtectionManager.shouldProtectFromPvP() &&
-                newbieProtectionManager.hasProtection(victim)) {
-
-            // Handle the protection (sends messages and potentially removes protection)
-            boolean shouldBlock = newbieProtectionManager.handleDamageReceived(victim, attacker);
-            if (shouldBlock) {
-                event.setCancelled(true);
-                plugin.debug("Blocked PvP damage to protected newbie: " + victim.getName());
-                return;
-            }
-        }
-
-        // Check if victim has newbie protection from mobs (when attacker is null or not a player)
-        else if (attacker == null && newbieProtectionManager.shouldProtectFromMobs() &&
-                newbieProtectionManager.hasProtection(victim)) {
+        if (respawnProtectionManager.shouldBlockDamage(victim, event)) {
             event.setCancelled(true);
-            plugin.debug("Blocked mob damage to protected newbie: " + victim.getName());
+            plugin.debug("Blocked damage to respawn-protected victim: " + victim.getName());
             return;
         }
 
@@ -175,8 +182,19 @@ public class CombatListeners implements Listener {
             return;
         }
 
-        if (event.getEntity() instanceof Player player && loginProtectionManager.shouldBlockAllDamage(player)) {
-            event.setCancelled(true);
+        if (event.getEntity() instanceof Player player) {
+            if (loginProtectionManager.shouldBlockDamage(player, event)) {
+                event.setCancelled(true);
+                return;
+            }
+            if (newbieProtectionManager.shouldBlockDamage(player, event)) {
+                event.setCancelled(true);
+                return;
+            }
+            if (respawnProtectionManager.shouldBlockDamage(player, event)) {
+                event.setCancelled(true);
+                return;
+            }
         }
     }
 
@@ -198,6 +216,14 @@ public class CombatListeners implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
         loginProtectionManager.handleMove(event);
+
+        Player player = event.getPlayer();
+        if (newbieProtectionManager.shouldBreakOnMove() && newbieProtectionManager.hasProtection(player)) {
+            newbieProtectionManager.removeProtection(player, true);
+        }
+        if (respawnProtectionManager.shouldBreakOnMove() && respawnProtectionManager.hasProtection(player)) {
+            respawnProtectionManager.removeProtection(player, true);
+        }
     }
 
     private void cleanupStaleDamageRecords() {
@@ -216,6 +242,7 @@ public class CombatListeners implements Listener {
         // Handle newbie protection cleanup
         newbieProtectionManager.handlePlayerQuit(player);
         loginProtectionManager.handlePlayerQuit(player);
+        respawnProtectionManager.handlePlayerQuit(player);
 
         if (combatManager.isInCombat(player)) {
             playerLoggedOutInCombat.put(player.getUniqueId(), true);
@@ -241,6 +268,7 @@ public class CombatListeners implements Listener {
         // Handle newbie protection cleanup
         newbieProtectionManager.handlePlayerQuit(player);
         loginProtectionManager.handlePlayerQuit(player);
+        respawnProtectionManager.handlePlayerQuit(player);
 
         if (combatManager.isInCombat(player)) {
             // Check if exempt_admin_kick is enabled and this was an admin kick
@@ -290,6 +318,10 @@ public class CombatListeners implements Listener {
         if (newbieProtectionManager.hasProtection(victim)) {
             newbieProtectionManager.removeProtection(victim, false);
             plugin.debug("Removed newbie protection from " + victim.getName() + " due to death");
+        }
+        if (respawnProtectionManager.hasProtection(victim)) {
+            respawnProtectionManager.removeProtection(victim, false);
+            plugin.debug("Removed respawn protection from " + victim.getName() + " due to death");
         }
 
         // If player directly killed by another player
@@ -374,9 +406,15 @@ public class CombatListeners implements Listener {
         lastDamageTime.remove(playerUUID);
     }
 
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        respawnProtectionManager.handlePlayerRespawn(player);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onResourcePackStatus(PlayerResourcePackStatusEvent event) {
-        if (!loginProtectionManager.shouldEndOnResourcePackLoaded()) {
+        if (!loginProtectionManager.isBreakOnResourcePackLoaded()) {
             return;
         }
 

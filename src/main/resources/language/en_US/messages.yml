@@ -173,6 +173,39 @@ combat_killed_no_safe_location:
   sound: entity.wither.hurt
 
 # ------------------------------------------------------
+# ------------------------------------------------------
+combat_no_safezone_entry:
+  message: "&cCan't enter safe zone in combat! &#F39C12Please wait &#FFFFFF%time% &#F39C12seconds."
+  sound: block.note_block.pling
+
+combat_no_pearl_safezone:
+  message: "&cCan't pearl into safe zone! &#F39C12Please wait &#FFFFFF%time% &#F39C12seconds."
+  sound: block.note_block.pling
+
+killed_trying_to_enter_safezone_combat:
+  message: "&&cYou were killed while trying to enter a safe zone in combat."
+  title: "&#E94E77COMBAT PENALTY"
+  subtitle: "&#BF3A49Don't go into safe zones during fights!"
+  sound: entity.wither.hurt
+
+# ------------------------------------------------------
+# Claim protection messages for GriefPrevention
+# ------------------------------------------------------
+combat_no_claim_entry:
+  message: "&cCan't enter protected claim in combat! &#F39C12Please wait &#FFFFFF%time% &#F39C12seconds."
+  sound: block.note_block.pling
+
+combat_no_pearl_claim:
+  message: "&cCan't pearl into protected claim! &#F39C12Please wait &#FFFFFF%time% &#F39C12seconds."
+  sound: block.note_block.pling
+
+combat_killed_no_safe_location:
+  message: "&cYou were killed while trying to enter a claim in combat."
+  title: "&#E94E77COMBAT PENALTY"
+  subtitle: "&#BF3A49Don't go into claims during fights!"
+  sound: entity.wither.hurt
+
+# ------------------------------------------------------
 #                Plugin command messages
 # ------------------------------------------------------
 no_permission:
@@ -196,6 +229,9 @@ help_message:
     &8» &#4A90E2/cc newbieProtection give <player> &#F5F5DC- Grant newbie protection to a player
     &8» &#4A90E2/cc newbieProtection remove <player> &#F5F5DC- Remove newbie protection from a player
     &8» &#4A90E2/cc newbieProtection check <player> &#F5F5DC- Check newbie protection status
+    &8» &#4A90E2/cc respawnProtection give <player> &#F5F5DC- Grant respawn protection to a player
+    &8» &#4A90E2/cc respawnProtection remove <player> &#F5F5DC- Remove respawn protection from a player
+    &8» &#4A90E2/cc respawnProtection check <player> &#F5F5DC- Check respawn protection status
     &8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Reload command messages
@@ -294,4 +330,46 @@ newbie_protection_not_protected:
 
 newbie_protection_check_protected:
   message: "&#4CAF50%player% has newbie protection with %time% remaining"
+  sound: block.note_block.pling
+
+# Respawn protection messages
+respawn_protection_granted:
+  message: "&#4CAF50Granted respawn protection for &#FFFFFF%duration%&#4CAF50! You are safe from PvP."
+  title: "&#4CAF50RESPAWN PROTECTION GRANTED"
+  subtitle: "&#66BB6AYou are safe from PvP briefly!"
+  sound: entity.player.levelup
+
+respawn_protection_attack_blocked:
+  message: "&#E94E77Cannot attack &#FFFFFF%player% &#E94E77because they have respawn protection!"
+  sound: entity.villager.no
+
+respawn_protection_removed_attack:
+  title: "&#FF9800RESPAWN PROTECTION REMOVED"
+  subtitle: "&#E65100You attacked someone - Respawn protection lost!"
+  sound: entity.wither.hurt
+
+respawn_protection_actionbar:
+  action_bar: "&#4CAF50Respawn Protection: &#FFFFFF%time%"
+
+respawn_protection_ended:
+  message: "&#4CAF50Respawn protection ended."
+
+respawn_protection_give_success:
+  message: "&#4CAF50Successfully granted respawn protection to %player%!"
+  sound: entity.experience_orb.pickup
+
+respawn_protection_remove_success:
+  message: "&#4CAF50Successfully removed respawn protection from %player%!"
+  sound: entity.experience_orb.pickup
+
+respawn_protection_already_has:
+  message: "&c%player% already has respawn protection!"
+  sound: entity.villager.no
+
+respawn_protection_not_protected:
+  message: "&c%player% does not have respawn protection!"
+  sound: entity.villager.no
+
+respawn_protection_check_protected:
+  message: "&#4CAF50%player% has respawn protection with %time% remaining"
   sound: block.note_block.pling

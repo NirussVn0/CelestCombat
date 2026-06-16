@@ -183,20 +183,20 @@ newbie_protection:
   enabled: true
   duration: 3h
 
-  # Protection settings
-  protect_from_pvp: true      # Protect from player vs player damage
-  protect_from_mobs: false    # Protect from mob damage
-
-  # Removal conditions
-  remove_on_damage_dealt: true    # Remove protection when player deals damage to another player
+  damage:
+    block_receiving_pvp: true
+    block_dealing_pvp: true
+    block_mobs: false
+    block_environmental: false
+    block_all: false
+    block_knockback: false
+    block_potion_effects: false
 
   break:
     on_player_attack: true
     on_pvp_command: true
-
-  damage:
-    block_dealing_pvp_damage: true
-    block_receiving_pvp_damage: true
+    on_mob_attack: false
+    on_damage_received: false
 
   display:
     use_bossbar: true
@@ -224,20 +224,70 @@ login_protection:
     allow_look: true
     clear_velocity: true
 
-  immunity:
-    all_damage: true
-    knockback: true
-    potion_effects: true
-
-  end:
-    on_time_expired: true
-    on_player_attack: true
-    on_pvp_command: true
-    on_resource_pack_loaded: true
-
   anti_abuse:
     disable_when_combat_logged: true
     cooldown: 30s
+
+  damage:
+    block_receiving_pvp: true
+    block_dealing_pvp: true
+    block_mobs: false
+    block_environmental: false
+    block_all: true
+    block_knockback: true
+    block_potion_effects: true
+
+  break:
+    on_player_attack: true
+    on_pvp_command: true
+    on_mob_attack: false
+    on_damage_received: false
+    on_resource_pack_loaded: true
+
+  display:
+    use_bossbar: false
+    use_actionbar: false
+
+    bossbar:
+      title: "&#4CAF50Login Protection: &#FFFFFF%time%"
+      color: "GREEN"      # BLUE, GREEN, PINK, PURPLE, RED, WHITE, YELLOW
+      style: "SOLID"      # SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+
+#---------------------------------------------------
+#              RESPAWN PROTECTION
+#---------------------------------------------------
+respawn_protection:
+  enabled: true
+  duration: 5m
+
+  damage:
+    block_receiving_pvp: true
+    block_dealing_pvp: true
+    block_mobs: false
+    block_environmental: false
+    block_all: false
+    block_knockback: false
+    block_potion_effects: false
+
+  break:
+    on_player_attack: true
+    on_pvp_command: true
+    on_mob_attack: false
+    on_damage_received: false
+
+  display:
+    use_bossbar: true
+    use_actionbar: false
+
+    bossbar:
+      title: "&#4CAF50Respawn Protection: &#FFFFFF%time%"
+      color: "GREEN"      # BLUE, GREEN, PINK, PURPLE, RED, WHITE, YELLOW
+      style: "SOLID"      # SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+
+  worlds:
+    world: true           # Enable protection in 'world'
+    world_nether: false   # Disable protection in 'world_nether'
+    world_the_end: false  # Disable protection in 'world_the_end'
 
 #---------------------------------------------------
 #              WORLDGUARD INTEGRATION

@@ -61,11 +61,14 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(player);
         profile.setPvpEnabled(true);
 
-        if (plugin.getLoginProtectionManager().shouldEndOnPvpCommand()) {
+        if (plugin.getLoginProtectionManager().shouldBreakOnPvpCommand()) {
             plugin.getLoginProtectionManager().removeProtection(player, true);
         }
         if (plugin.getNewbieProtectionManager().shouldBreakOnPvpCommand()) {
             plugin.getNewbieProtectionManager().revokeProtection(player, false);
+        }
+        if (plugin.getRespawnProtectionManager().shouldBreakOnPvpCommand()) {
+            plugin.getRespawnProtectionManager().removeProtection(player, false);
         }
 
         plugin.getPlayerProfileManager().saveProfiles();
@@ -96,11 +99,13 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         PlayerProfile profile = plugin.getPlayerProfileManager().getOrCreate(target);
         String newbie = plugin.getNewbieProtectionManager().hasProtection(target) ? "active" : "inactive";
         String login = plugin.getLoginProtectionManager().hasProtection(target) ? "active" : "inactive";
+        String respawn = plugin.getRespawnProtectionManager().hasProtection(target) ? "active" : "inactive";
         plugin.getMessageService().sendMessage(sender, "pvp_status", Map.of(
                 "player", target.getName(),
                 "pvp", String.valueOf(profile.isPvpEnabled()),
                 "newbie", newbie,
-                "login", login
+                "login", login,
+                "respawn", respawn
         ));
     }
 
@@ -142,6 +147,7 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         profile.setLoginProtectionBlockedUntil(0L);
         plugin.getNewbieProtectionManager().removeProtection(target, false);
         plugin.getLoginProtectionManager().removeProtection(target, false);
+        plugin.getRespawnProtectionManager().removeProtection(target, false);
         plugin.getPlayerProfileManager().saveProfiles();
         plugin.getMessageService().sendMessage(sender, "pvp_admin_reset", Map.of("player", target.getName()));
     }
@@ -170,8 +176,10 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
             plugin.getNewbieProtectionManager().grantProtection(target, ticks * 50L);
         } else if (type.equals("login")) {
             plugin.getLoginProtectionManager().grantProtection(target, ticks * 50L);
+        } else if (type.equals("respawn")) {
+            plugin.getRespawnProtectionManager().grantProtection(target, ticks * 50L);
         } else {
-            sender.sendMessage("§cProtection type must be newbie or login.");
+            sender.sendMessage("§cProtection type must be newbie, login or respawn.");
             return;
         }
 
@@ -199,6 +207,9 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         if (type.equals("login") || type.equals("all")) {
             plugin.getLoginProtectionManager().removeProtection(target, false);
         }
+        if (type.equals("respawn") || type.equals("all")) {
+            plugin.getRespawnProtectionManager().removeProtection(target, false);
+        }
         plugin.getPlayerProfileManager().saveProfiles();
         plugin.getMessageService().sendMessage(sender, "pvp_admin_unprotect", Map.of("player", target.getName(), "type", type));
     }
@@ -211,6 +222,7 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
         plugin.getKillRewardManager().loadConfig();
         plugin.getNewbieProtectionManager().reloadConfig();
         plugin.getLoginProtectionManager().reloadConfig();
+        plugin.getRespawnProtectionManager().reloadConfig();
         plugin.getCombatListeners().reload();
         plugin.getMessageService().clearKeyExistsCache();
         plugin.getMessageService().sendMessage(sender, "config_reloaded");
@@ -244,10 +256,10 @@ public class PvpCommand implements CommandExecutor, TabCompleter {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).filter(name -> startsWith(name, args[1])).collect(Collectors.toList());
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("protect")) {
-            return filter(Arrays.asList("newbie", "login"), args[2]);
+            return filter(Arrays.asList("newbie", "login", "respawn"), args[2]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("unprotect")) {
-            return filter(Arrays.asList("newbie", "login", "all"), args[2]);
+            return filter(Arrays.asList("newbie", "login", "respawn", "all"), args[2]);
         }
         return new ArrayList<>();
     }

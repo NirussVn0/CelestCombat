@@ -18,6 +18,7 @@ import dev.nighter.celestCombat.listeners.TridentListener;
 import dev.nighter.celestCombat.player.PlayerProfileManager;
 import dev.nighter.celestCombat.protection.LoginProtectionManager;
 import dev.nighter.celestCombat.protection.NewbieProtectionManager;
+import dev.nighter.celestCombat.protection.RespawnProtectionManager;
 import dev.nighter.celestCombat.rewards.KillRewardManager;
 import dev.nighter.celestCombat.updates.ConfigUpdater;
 import dev.nighter.celestCombat.updates.LanguageUpdater;
@@ -50,6 +51,7 @@ public final class CelestCombat extends JavaPlugin {
     private PlayerProfileManager playerProfileManager;
     private NewbieProtectionManager newbieProtectionManager;
     private LoginProtectionManager loginProtectionManager;
+    private RespawnProtectionManager respawnProtectionManager;
     private WorldGuardHook worldGuardHook;
     private GriefPreventionHook griefPreventionHook;
 
@@ -80,6 +82,7 @@ public final class CelestCombat extends JavaPlugin {
         playerProfileManager = new PlayerProfileManager(this);
         newbieProtectionManager = new NewbieProtectionManager(this);
         loginProtectionManager = new LoginProtectionManager(this);
+        respawnProtectionManager = new RespawnProtectionManager(this);
         combatListeners = new CombatListeners(this);
         getServer().getPluginManager().registerEvents(combatListeners, this);
 
@@ -159,6 +162,10 @@ public final class CelestCombat extends JavaPlugin {
 
         if (loginProtectionManager != null) {
             loginProtectionManager.shutdown();
+        }
+
+        if (respawnProtectionManager != null) {
+            respawnProtectionManager.shutdown();
         }
 
         if (playerProfileManager != null) {
