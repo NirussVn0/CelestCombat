@@ -1,3 +1,6 @@
+# Configuration version - Do not modify this value
+config_version: 1.1.0
+
 # TIME FORMAT GUIDE
 # Simple formats: 20s (20 seconds), 5m (5 minutes), 1h (1 hour)
 # Complex format: 1d_2h_30m_15s (1 day, 2 hours, 30 minutes, 15 seconds)
@@ -13,7 +16,7 @@
 #               Language Settings
 #---------------------------------------------------
 # Language setting (available: en_US, vi_VN)
-language: en_US
+language: vi_VN
 
 # Enable or disable debug mode (provides verbose console output)
 debug: false
@@ -23,7 +26,7 @@ debug: false
 #---------------------------------------------------
 combat:
   # Combat tag duration
-  duration: 20s
+  duration: 30s
 
   # Command blocking mode: "blacklist" or "whitelist"
   # whitelist - blocks all commands EXCEPT those listed in 'allowed_commands'
@@ -43,10 +46,10 @@ combat:
     - "warp"
     - "home"
     - "team"
-    - "enderchest"
-    - "ec"
-    - "vanish"
     - "v"
+    - "back"
+    - "kit"
+    - "kits"
 
   # Commands allowed during combat (used in whitelist mode)
   allowed_commands:
@@ -56,32 +59,30 @@ combat:
     - "tell"
     - "w"
     - "whisper"
-    - "shop"
-    - "buy"
-    - "sell"
-    - "ah"
 
   # If true, players kicked/banned by admins won't be punished (killed) for combat logging
   exempt_admin_kick: true
 
   # Disable flight (Creative fly) during combat
-  disable_flight: false
+  disable_flight: true
 
   # Items blocked during combat (Foods, Potions, Elytra)
   item_restrictions:
     # Enable or disable item restrictions during combat
-    enabled: false
+    enabled: true
     # Items blocked during combat (Foods, Potions, Elytra)
     disabled_items:
       - CHORUS_FRUIT
       - ELYTRA
+      - END_CRYSTAL
+      - RESPAWN_ANCHOR
 
 #---------------------------------------------------
 #              ENDER PEARL RESTRICTIONS
 #---------------------------------------------------
 enderpearl:
   # Refresh combat timer when player lands an ender pearl
-  refresh_combat_on_land: false
+  refresh_combat_on_land: true
 
 enderpearl_cooldown:
   # Enable/disable ender pearl cooldowns
@@ -102,7 +103,7 @@ enderpearl_cooldown:
 #---------------------------------------------------
 trident:
   # Refresh combat timer when trident lands (similar to enderpearl)
-  refresh_combat_on_land: false
+  refresh_combat_on_land: true
 
   # Worlds where tridents are completely banned
   banned_worlds:
@@ -147,12 +148,12 @@ death_animation:
 # ---------------------------------------------------
 kill_rewards:
   # Master toggle for kill rewards
-  enabled: true
+  enabled: false
 
   # Commands executed when player gets a kill
   # Variables: %killer% = killer's name, %victim% = victim's name
   commands:
-    - "donutcratecore shards give %killer% 10"
+    # "donutcratecore shards give %killer% 10"
     # add more commands as needed
 
   cooldown:
@@ -184,7 +185,7 @@ newbie_protection:
   # Bật/tắt bảo vệ cho người chơi mới
   enabled: true
   
-  # Duration of the protection (e.g. 3h = 3 hours)
+  # Duration of the newbie protection (e.g. 3h = 3 hours)
   # Thời gian bảo vệ người chơi mới
   duration: 3h
 
@@ -208,7 +209,7 @@ newbie_protection:
   break:
     # Remove protection if player attacks another player
     # Tự động hủy bảo vệ khi người chơi tấn công người chơi khác
-    on_player_attack: true
+    on_player_attack: false
     # Remove protection if player attacks a mob/monster
     # Tự động hủy bảo vệ khi người chơi tấn công quái vật
     on_mob_attack: false
@@ -225,7 +226,7 @@ newbie_protection:
     use_actionbar: false
 
     bossbar:
-      title: "&#4CAF50PvP Protection: &#FFFFFF%time%"
+      title: "&#4CAF50🛡 Bảo vệ PvP: &#FFFFFF%time%"
       color: "GREEN"      # BLUE, GREEN, PINK, PURPLE, RED, WHITE, YELLOW
       style: "SOLID"      # SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
 
