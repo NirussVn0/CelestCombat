@@ -40,19 +40,17 @@ public abstract class BaseProtectionManager {
     protected final Map<String, Boolean> worldProtectionSettings = new ConcurrentHashMap<>();
 
     // Damage settings
-    protected boolean blockReceivingPvp;
-    protected boolean blockDealingPvp;
-    protected boolean blockMobs;
-    protected boolean blockEnvironmental;
+    protected boolean protectFromPvp;
+    protected boolean protectFromMobs;
+    protected boolean protectFromEnvironmental;
     protected boolean blockAll;
     protected boolean blockKnockback;
     protected boolean blockPotionEffects;
 
     // Break settings
     protected boolean breakOnPlayerAttack;
-    protected boolean breakOnPvpCommand;
     protected boolean breakOnMobAttack;
-    protected boolean breakOnDamageReceived;
+    protected boolean breakOnPvpCommand;
     protected boolean breakOnMove;
     protected boolean breakOnResourcePackLoaded;
 
@@ -123,19 +121,17 @@ public abstract class BaseProtectionManager {
         this.durationMillis = getTimeMillis(config, "duration", getDefaultDuration());
 
         // Damage settings
-        this.blockReceivingPvp = getBoolean(config, "damage.block_receiving_pvp", getDefaultBlockReceivingPvp(), "protect_from_pvp");
-        this.blockDealingPvp = getBoolean(config, "damage.block_dealing_pvp", getDefaultBlockDealingPvp(), "damage.block_dealing_pvp_damage");
-        this.blockMobs = getBoolean(config, "damage.block_mobs", false, "protect_from_mobs");
-        this.blockEnvironmental = getBoolean(config, "damage.block_environmental", false);
+        this.protectFromPvp = getBoolean(config, "damage.protect_from_pvp", getDefaultBlockReceivingPvp(), "protect_from_pvp", "damage.block_receiving_pvp");
+        this.protectFromMobs = getBoolean(config, "damage.protect_from_mobs", false, "protect_from_mobs", "damage.block_mobs");
+        this.protectFromEnvironmental = getBoolean(config, "damage.protect_from_environmental", false, "damage.block_environmental");
         this.blockAll = getBoolean(config, "damage.block_all", false, "immunity.all_damage");
-        this.blockKnockback = getBoolean(config, "damage.block_knockback", false, "immunity.knockback");
-        this.blockPotionEffects = getBoolean(config, "damage.block_potion_effects", false, "immunity.potion_effects");
+        this.blockKnockback = getBoolean(config, "damage.block_knockback", false, "immunity.knockback", "damage.block_knockback");
+        this.blockPotionEffects = getBoolean(config, "damage.block_potion_effects", false, "immunity.potion_effects", "damage.block_potion_effects");
 
         // Break settings
         this.breakOnPlayerAttack = getBoolean(config, "break.on_player_attack", true, "remove_on_damage_dealt", "end.on_player_attack");
-        this.breakOnPvpCommand = getBoolean(config, "break.on_pvp_command", true, "end.on_pvp_command");
         this.breakOnMobAttack = getBoolean(config, "break.on_mob_attack", false);
-        this.breakOnDamageReceived = getBoolean(config, "break.on_damage_received", false);
+        this.breakOnPvpCommand = getBoolean(config, "break.on_pvp_command", true, "end.on_pvp_command");
         this.breakOnMove = getBoolean(config, "break.on_move", false);
         this.breakOnResourcePackLoaded = getBoolean(config, "break.on_resource_pack_loaded", false, "end.on_resource_pack_loaded");
 
@@ -582,10 +578,10 @@ public abstract class BaseProtectionManager {
     }
 
     /**
-     * Handler when dealing PvP damage
-     * Returns true if damage should be blocked
+     * Handler when dealing PvP damage to another player.
+     * Returns true if the attack/damage should be blocked.
      */
-    public boolean handleDamageDealt(Player player) {
+    public boolean handleDamageDealtToPlayer(Player player) {
         if (!hasProtection(player)) {
             return false;
         }
@@ -598,24 +594,43 @@ public abstract class BaseProtectionManager {
             }
 
             revokeProtection(player, false);
-            return false; // Break protection, allow damage
+            return false; // Break protection, allow damage to go through
         }
 
-        return blockDealingPvp;
+        // If protection doesn't break, block dealing PvP damage if protectFromPvp is enabled
+        return protectFromPvp;
     }
 
     /**
-     * Handler when receiving damage
-     * Returns true if damage should be blocked
+     * Handler when dealing damage to a mob.
+     * Returns true if the attack/damage should be blocked.
      */
-    public boolean handleDamageReceived(Player player, Player attacker) {
+    public boolean handleDamageDealtToMob(Player player) {
         if (!hasProtection(player)) {
             return false;
         }
 
-        if (breakOnDamageReceived) {
-            removeProtection(player, true);
-            return false; // Break protection, allow damage
+        if (breakOnMobAttack) {
+            if (messageRemovedAttackKey != null && !messageRemovedAttackKey.isEmpty()) {
+                Map<String, String> placeholders = new HashMap<>();
+                placeholders.put("player", player.getName());
+                plugin.getMessageService().sendMessage(player, messageRemovedAttackKey, placeholders);
+            }
+
+            revokeProtection(player, false);
+            return false; // Break protection, allow damage to go through
+        }
+
+        return false; // Do not block dealing damage to mobs
+    }
+
+    /**
+     * Handler when receiving PvP damage.
+     * Returns true if damage should be blocked.
+     */
+    public boolean handleDamageReceived(Player player, Player attacker) {
+        if (!hasProtection(player)) {
+            return false;
         }
 
         if (attacker != null && attacker != player) {
@@ -647,22 +662,18 @@ public abstract class BaseProtectionManager {
             Player attacker = getAttacker(entityEvent);
             if (attacker != null) {
                 // PvP damage
-                if (blockReceivingPvp) {
+                if (protectFromPvp) {
                     return handleDamageReceived(player, attacker);
                 }
             } else {
                 // Mob / Non-player damage
-                if (breakOnMobAttack) {
-                    removeProtection(player, true);
-                    return false;
-                }
-                if (blockMobs) {
+                if (protectFromMobs) {
                     return true;
                 }
             }
         } else {
             // Environmental/other damage
-            if (blockEnvironmental) {
+            if (protectFromEnvironmental) {
                 return true;
             }
         }

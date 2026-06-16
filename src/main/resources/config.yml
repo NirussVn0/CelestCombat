@@ -180,26 +180,48 @@ kill_rewards:
 #              NEW PLAYER PROTECTION
 #---------------------------------------------------
 newbie_protection:
+  # Enable/disable newbie protection
+  # Bật/tắt bảo vệ cho người chơi mới
   enabled: true
+  
+  # Duration of the protection (e.g. 3h = 3 hours)
+  # Thời gian bảo vệ người chơi mới
   duration: 3h
 
   damage:
-    block_receiving_pvp: true
-    block_dealing_pvp: true
-    block_mobs: false
-    block_environmental: false
-    block_all: false
+    # Protect from receiving & dealing PvP damage
+    # Bảo vệ khỏi nhận/gây sát thương PvP (giao đấu giữa người chơi)
+    protect_from_pvp: true
+    # Block damage from monsters/mobs
+    # Chặn sát thương từ quái vật/mob
+    protect_from_mobs: false
+    # Block environmental damage (fall, fire, drowning, etc.)
+    # Chặn sát thương môi trường (ngã, lửa, đuối nước,...)
+    protect_from_environmental: false
+    # Block knockback while protected
+    # Chặn lực đẩy lùi khi đang được bảo vệ
     block_knockback: false
+    # Block negative potion effects while protected
+    # Chặn hiệu ứng thuốc có hại khi đang được bảo vệ
     block_potion_effects: false
 
   break:
+    # Remove protection if player attacks another player
+    # Tự động hủy bảo vệ khi người chơi tấn công người chơi khác
     on_player_attack: true
-    on_pvp_command: true
+    # Remove protection if player attacks a mob/monster
+    # Tự động hủy bảo vệ khi người chơi tấn công quái vật
     on_mob_attack: false
-    on_damage_received: false
+    # Remove protection if player executes a PvP-related command
+    # Tự động hủy bảo vệ khi người chơi dùng lệnh PvP
+    on_pvp_command: true
 
   display:
+    # Show a bossbar indicating remaining protection time
+    # Hiển thị thanh BossBar đếm ngược thời gian bảo vệ
     use_bossbar: true
+    # Show an actionbar indicating remaining protection time
+    # Hiển thị thanh ActionBar đếm ngược thời gian bảo vệ
     use_actionbar: false
 
     bossbar:
@@ -216,36 +238,70 @@ newbie_protection:
 #              LOGIN PROTECTION
 #---------------------------------------------------
 login_protection:
+  # Enable/disable login protection
+  # Bật/tắt bảo vệ khi đăng nhập vào máy chủ
   enabled: true
+  
+  # Duration of the protection
+  # Thời gian bảo vệ khi đăng nhập
   duration: 10s
 
   freeze:
+    # Prevent player movement during login protection
+    # Đông cứng người chơi khi đăng nhập
     enabled: true
+    # Allow player to look around while frozen
+    # Cho phép xoay góc nhìn khi đang bị đông cứng
     allow_look: true
+    # Clear player velocity on join (stops fall/fly speed)
+    # Xóa vận tốc của người chơi khi vào (ngăn sát thương rơi/bay)
     clear_velocity: true
 
   anti_abuse:
+    # If true, bypass login protection if player logged out during combat
+    # Bỏ qua bảo vệ đăng nhập nếu người chơi thoát game khi đang giao chiến
     disable_when_combat_logged: true
+    # Cooldown before login protection can be granted again after combat log
+    # Thời gian chờ trước khi được bảo vệ đăng nhập lại
     cooldown: 30s
 
   damage:
-    block_receiving_pvp: true
-    block_dealing_pvp: true
-    block_mobs: false
-    block_environmental: false
-    block_all: true
+    # Protect from receiving & dealing PvP damage
+    # Bảo vệ khỏi nhận/gây sát thương PvP
+    protect_from_pvp: true
+    # Block damage from monsters/mobs
+    # Chặn sát thương từ quái vật/mob
+    protect_from_mobs: true
+    # Block environmental damage (fall, fire, drowning, etc.)
+    # Chặn sát thương môi trường
+    protect_from_environmental: true
+    # Block knockback while protected
+    # Chặn lực đẩy lùi khi đang được bảo vệ đăng nhập
     block_knockback: true
+    # Block negative potion effects while protected
+    # Chặn hiệu ứng thuốc có hại khi đang được bảo vệ đăng nhập
     block_potion_effects: true
 
   break:
+    # Remove protection if player attacks another player
+    # Tự động hủy bảo vệ khi người chơi tấn công người chơi khác
     on_player_attack: true
-    on_pvp_command: true
+    # Remove protection if player attacks a mob
+    # Tự động hủy bảo vệ khi người chơi tấn công quái vật
     on_mob_attack: false
-    on_damage_received: false
+    # Remove protection if player executes a PvP-related command
+    # Tự động hủy bảo vệ khi người chơi dùng lệnh PvP
+    on_pvp_command: true
+    # Remove protection once player successfully loads the resource pack
+    # Tự động hủy bảo vệ sau khi tải xong gói tài nguyên (Resource Pack)
     on_resource_pack_loaded: true
 
   display:
+    # Show a bossbar indicating remaining protection time
+    # Hiển thị thanh BossBar đếm ngược thời gian bảo vệ đăng nhập
     use_bossbar: false
+    # Show an actionbar indicating remaining protection time
+    # Hiển thị thanh ActionBar đếm ngược thời gian bảo vệ đăng nhập
     use_actionbar: false
 
     bossbar:
@@ -257,26 +313,48 @@ login_protection:
 #              RESPAWN PROTECTION
 #---------------------------------------------------
 respawn_protection:
+  # Enable/disable respawn protection
+  # Bật/tắt bảo vệ sau khi hồi sinh
   enabled: true
+  
+  # Duration of the protection (e.g. 5m = 5 minutes)
+  # Thời gian bảo vệ tạm thời sau khi hồi sinh
   duration: 5m
 
   damage:
-    block_receiving_pvp: true
-    block_dealing_pvp: true
-    block_mobs: false
-    block_environmental: false
-    block_all: false
+    # Protect from receiving & dealing PvP damage
+    # Bảo vệ khỏi nhận/gây sát thương PvP sau khi hồi sinh
+    protect_from_pvp: true
+    # Block damage from monsters/mobs
+    # Chặn sát thương từ quái vật/mob sau khi hồi sinh
+    protect_from_mobs: false
+    # Block environmental damage (fall, fire, drowning, etc.)
+    # Chặn sát thương môi trường sau khi hồi sinh
+    protect_from_environmental: false
+    # Block knockback while protected
+    # Chặn lực đẩy lùi khi đang được bảo vệ sau khi hồi sinh
     block_knockback: false
+    # Block negative potion effects while protected
+    # Chặn hiệu ứng thuốc có hại khi đang được bảo vệ sau khi hồi sinh
     block_potion_effects: false
 
   break:
+    # Remove protection if player attacks another player
+    # Tự động hủy bảo vệ khi người chơi tấn công người chơi khác
     on_player_attack: true
-    on_pvp_command: true
+    # Remove protection if player attacks a mob
+    # Tự động hủy bảo vệ khi người chơi tấn công quái vật
     on_mob_attack: false
-    on_damage_received: false
+    # Remove protection if player executes a PvP-related command
+    # Tự động hủy bảo vệ khi người chơi dùng lệnh PvP
+    on_pvp_command: true
 
   display:
+    # Show a bossbar indicating remaining protection time
+    # Hiển thị thanh BossBar đếm ngược thời gian bảo vệ sau khi hồi sinh
     use_bossbar: true
+    # Show an actionbar indicating remaining protection time
+    # Hiển thị thanh ActionBar đếm ngược thời gian bảo vệ sau khi hồi sinh
     use_actionbar: false
 
     bossbar:

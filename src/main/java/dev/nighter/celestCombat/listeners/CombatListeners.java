@@ -85,94 +85,114 @@ public class CombatListeners implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Player attacker = null;
-        Player victim = null;
-
-        if (event.getEntity() instanceof Player) {
-            victim = (Player) event.getEntity();
-        } else {
-            return;
-        }
-
         Entity damager = event.getDamager();
 
         if (damager instanceof Player) {
             attacker = (Player) damager;
-        }
-        else if (damager instanceof Projectile) {
+        } else if (damager instanceof Projectile) {
             Projectile projectile = (Projectile) damager;
             if (projectile.getShooter() instanceof Player) {
                 attacker = (Player) projectile.getShooter();
             }
         }
 
-        // Check if attacker has protection
-        if (attacker != null) {
-            if (loginProtectionManager.hasProtection(attacker)) {
-                boolean shouldBlock = loginProtectionManager.handleDamageDealt(attacker);
-                if (shouldBlock) {
-                    event.setCancelled(true);
-                    plugin.debug("Blocked PvP damage from login-protected attacker: " + attacker.getName());
-                    return;
-                }
-            }
-            if (newbieProtectionManager.hasProtection(attacker)) {
-                boolean shouldBlock = newbieProtectionManager.handleDamageDealt(attacker);
-                if (shouldBlock) {
-                    event.setCancelled(true);
-                    plugin.debug("Blocked PvP damage from protected newbie: " + attacker.getName());
-                    return;
-                }
-            }
-            if (respawnProtectionManager.hasProtection(attacker)) {
-                boolean shouldBlock = respawnProtectionManager.handleDamageDealt(attacker);
-                if (shouldBlock) {
-                    event.setCancelled(true);
-                    plugin.debug("Blocked PvP damage from respawn-protected attacker: " + attacker.getName());
-                    return;
-                }
-            }
-        }
+        if (event.getEntity() instanceof Player) {
+            Player victim = (Player) event.getEntity();
 
-        // Check if victim is protected from damage
-        if (loginProtectionManager.shouldBlockDamage(victim, event)) {
-            event.setCancelled(true);
-            plugin.debug("Blocked damage to login-protected victim: " + victim.getName());
-            return;
-        }
-        if (newbieProtectionManager.shouldBlockDamage(victim, event)) {
-            event.setCancelled(true);
-            plugin.debug("Blocked damage to newbie-protected victim: " + victim.getName());
-            return;
-        }
-        if (respawnProtectionManager.shouldBlockDamage(victim, event)) {
-            event.setCancelled(true);
-            plugin.debug("Blocked damage to respawn-protected victim: " + victim.getName());
-            return;
-        }
+            // Check if attacker has protection
+            if (attacker != null) {
+                if (loginProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = loginProtectionManager.handleDamageDealtToPlayer(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        plugin.debug("Blocked PvP damage from login-protected attacker: " + attacker.getName());
+                        return;
+                    }
+                }
+                if (newbieProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = newbieProtectionManager.handleDamageDealtToPlayer(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        plugin.debug("Blocked PvP damage from newbie-protected attacker: " + attacker.getName());
+                        return;
+                    }
+                }
+                if (respawnProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = respawnProtectionManager.handleDamageDealtToPlayer(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        plugin.debug("Blocked PvP damage from respawn-protected attacker: " + attacker.getName());
+                        return;
+                    }
+                }
+            }
 
-        if (attacker != null) {
-            PlayerProfile attackerProfile = plugin.getPlayerProfileManager().getOrCreate(attacker);
-            PlayerProfile victimProfile = plugin.getPlayerProfileManager().getOrCreate(victim);
-            if (!attackerProfile.isPvpEnabled() || !victimProfile.isPvpEnabled()) {
+            // Check if victim is protected from damage
+            if (loginProtectionManager.shouldBlockDamage(victim, event)) {
                 event.setCancelled(true);
-                messageService.sendMessage(attacker, "pvp_not_enabled");
-                plugin.debug("Blocked PvP because PvP is not enabled for attacker or victim");
+                plugin.debug("Blocked damage to login-protected victim: " + victim.getName());
                 return;
             }
-        }
+            if (newbieProtectionManager.shouldBlockDamage(victim, event)) {
+                event.setCancelled(true);
+                plugin.debug("Blocked damage to newbie-protected victim: " + victim.getName());
+                return;
+            }
+            if (respawnProtectionManager.shouldBlockDamage(victim, event)) {
+                event.setCancelled(true);
+                plugin.debug("Blocked damage to respawn-protected victim: " + victim.getName());
+                return;
+            }
 
-        // Continue with normal combat logic if damage wasn't blocked
-        if (attacker != null && victim != null && !attacker.equals(victim)) {
-            // Track this as the most recent damage source
-            lastDamageSource.put(victim.getUniqueId(), attacker.getUniqueId());
-            lastDamageTime.put(victim.getUniqueId(), System.currentTimeMillis());
+            if (attacker != null) {
+                PlayerProfile attackerProfile = plugin.getPlayerProfileManager().getOrCreate(attacker);
+                PlayerProfile victimProfile = plugin.getPlayerProfileManager().getOrCreate(victim);
+                if (!attackerProfile.isPvpEnabled() || !victimProfile.isPvpEnabled()) {
+                    event.setCancelled(true);
+                    messageService.sendMessage(attacker, "pvp_not_enabled");
+                    plugin.debug("Blocked PvP because PvP is not enabled for attacker or victim");
+                    return;
+                }
+            }
 
-            // Combat tag both players
-            combatManager.tagPlayer(attacker, victim);
-            combatManager.tagPlayer(victim, attacker);
+            // Continue with normal combat logic if damage wasn't blocked
+            if (attacker != null && !attacker.equals(victim)) {
+                // Track this as the most recent damage source
+                lastDamageSource.put(victim.getUniqueId(), attacker.getUniqueId());
+                lastDamageTime.put(victim.getUniqueId(), System.currentTimeMillis());
 
-            // Perform cleanup of stale records
-            cleanupStaleDamageRecords();
+                // Combat tag both players
+                combatManager.tagPlayer(attacker, victim);
+                combatManager.tagPlayer(victim, attacker);
+
+                // Perform cleanup of stale records
+                cleanupStaleDamageRecords();
+            }
+        } else {
+            // Player vs Mob / Non-player victim
+            if (attacker != null) {
+                if (loginProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = loginProtectionManager.handleDamageDealtToMob(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+                if (newbieProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = newbieProtectionManager.handleDamageDealtToMob(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+                if (respawnProtectionManager.hasProtection(attacker)) {
+                    boolean shouldBlock = respawnProtectionManager.handleDamageDealtToMob(attacker);
+                    if (shouldBlock) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+            }
         }
     }
 
